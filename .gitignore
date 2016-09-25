@@ -1,0 +1,15 @@
+*.class
+build/
+*~
+*.iml
+*.ipr
+*.iws
+.gradle/
+.idea/
+.project
+.classpath
+.settings/
+classes/
+out/
+ee http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
