@@ -17,6 +17,7 @@ import java.lang.reflect.Method;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -31,7 +32,7 @@ import static java.lang.String.format;
 public class GenericEnumUserType implements UserType, ParameterizedType {
     private static final CoreMessageLogger LOGGER = Logger.getMessageLogger(CoreMessageLogger.class, GenericEnumUserType.class.getName());
     private static final CoreMessageLogger BINDER_LOGGER = Logger.getMessageLogger(CoreMessageLogger.class, BasicBinder.class.getName());
-    private static final CoreMessageLogger EXTRACOR_LOGGER = Logger.getMessageLogger(CoreMessageLogger.class, BasicExtractor.class.getName());
+    private static final CoreMessageLogger EXTRACTOR_LOGGER = Logger.getMessageLogger(CoreMessageLogger.class, BasicExtractor.class.getName());
 
     /**
      * 대상 enum 클래스 지정 파라미터 이름
@@ -160,7 +161,7 @@ public class GenericEnumUserType implements UserType, ParameterizedType {
 
     @Override
     public int[] sqlTypes() {
-        return sqlTypes;
+        return Arrays.copyOf(sqlTypes, sqlTypes.length);
     }
 
     @Override
@@ -178,7 +179,7 @@ public class GenericEnumUserType implements UserType, ParameterizedType {
 
         try {
             Object resultValue = valueOfMethod.invoke(enumClass, new Object[]{identifier});
-            EXTRACOR_LOGGER.tracev("Found [{0}] as column [{1}] original value [{2}]", resultValue, names[0], identifier);
+            EXTRACTOR_LOGGER.tracev("Found [{0}] as column [{1}] original value [{2}]", resultValue, names[0], identifier);
             return resultValue;
         } catch (Exception exception) {
             throw new HibernateException(format("Exception while invoking valueOf method '%s' of enumeration class '%s'.", valueOfMethod.getName(), enumClass), exception);
