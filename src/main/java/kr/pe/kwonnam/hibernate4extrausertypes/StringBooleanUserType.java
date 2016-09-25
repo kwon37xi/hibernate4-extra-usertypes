@@ -159,9 +159,10 @@ public class StringBooleanUserType implements UserType, ParameterizedType {
 
     private boolean stringEqualsWithCaseCheck(String value1, String value2) {
         if (ignoreCase) {
-            return StringUtils.equalsIgnoreCase(value1, value2);
+//            return StringUtils.equalsIgnoreCase(value1, value2);
         }
-        return StringUtils.equals(value1, value2);
+//        return StringUtils.equals(value1, value2);
+        return false;
     }
 
     /**
