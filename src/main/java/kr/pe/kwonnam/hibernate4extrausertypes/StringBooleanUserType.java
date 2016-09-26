@@ -1,27 +1,30 @@
 package kr.pe.kwonnam.hibernate4extrausertypes;
 
-
+import org.apache.commons.lang3.StringUtils;
 import org.hibernate.engine.spi.SessionImplementor;
-import org.hibernate.type.AbstractSingleColumnStandardBasicType;
-import org.hibernate.type.TypeResolver;
-import org.hibernate.type.descriptor.JdbcTypeNameMapper;
+import org.hibernate.internal.CoreMessageLogger;
+import org.hibernate.type.StandardBasicTypes;
+import org.hibernate.type.descriptor.sql.BasicBinder;
+import org.hibernate.type.descriptor.sql.BasicExtractor;
 import org.hibernate.usertype.ParameterizedType;
 import org.hibernate.usertype.UserType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 import java.io.Serializable;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
+import java.sql.Types;
 import java.util.Objects;
 import java.util.Properties;
 
 import static java.lang.String.format;
 
 public class StringBooleanUserType implements UserType, ParameterizedType {
-    private Logger log = LoggerFactory.getLogger(StringBooleanUserType.class);
+    private static final CoreMessageLogger BINDER_LOGGER = Logger.getMessageLogger(CoreMessageLogger.class, BasicBinder.class.getName());
+    private static final CoreMessageLogger EXTRACTOR_LOGGER = Logger.getMessageLogger(CoreMessageLogger.class, BasicExtractor.class.getName());
+
+    public static final int SQL_TYPE = Types.VARCHAR;
 
     public static final String PARAM_TRUE_VALUE = "trueValue";
     public static final String DEFAULT_TRUE_VALUE = "Y";
@@ -39,13 +42,10 @@ public class StringBooleanUserType implements UserType, ParameterizedType {
 
     /**
      * 대소문자 무시할 지 여부를 true/false로 지정한다.
-     * 기본값은 true로 대소문자를 무시하고 비교한다.
+     * 기본값은 true로 대소문자를 다른 값으로써 비교한다.
      */
     public static final String PARAM_IGNORE_CASE = "ignoreCase";
-    public static final String DEFAULT_IGNORE_CASE = "true";
-
-    private AbstractSingleColumnStandardBasicType type;
-    private int[] sqlTypes = null;
+    public static final String DEFAULT_IGNORE_CASE = "false";
 
     private String trueValue = null;
     private String falseValue = null;
@@ -62,8 +62,6 @@ public class StringBooleanUserType implements UserType, ParameterizedType {
         falseValue = parameters.getProperty(PARAM_FALSE_VALUE, DEFAULT_FALSE_VALUE);
         unknownResult = populateUnknownResult(parameters.getProperty(PARAM_UNKNOWN_RESULT, DEFAULT_UNKNOWN_RESULT));
         ignoreCase = Boolean.valueOf(parameters.getProperty(PARAM_IGNORE_CASE, DEFAULT_IGNORE_CASE));
-
-        populateSqlTypes();
     }
 
     Boolean populateUnknownResult(String unknownResultString) {
@@ -80,18 +78,9 @@ public class StringBooleanUserType implements UserType, ParameterizedType {
                 unknownResultString));
     }
 
-    private void populateSqlTypes() {
-        TypeResolver tr = new TypeResolver();
-        String stringClassName = String.class.getName();
-
-        // type은 org.hibernate.type.StringType 으로 사실상 고정값임.
-        type = (AbstractSingleColumnStandardBasicType) tr.basic(stringClassName);
-        sqlTypes = new int[] { type.sqlType() };
-    }
-
     @Override
     public int[] sqlTypes() {
-        return Arrays.copyOf(sqlTypes, sqlTypes.length);
+        return new int[]{SQL_TYPE};
     }
 
     @Override
@@ -136,33 +125,32 @@ public class StringBooleanUserType implements UserType, ParameterizedType {
 
     @Override
     public Object nullSafeGet(ResultSet rs, String[] names, SessionImplementor session, Object owner) throws SQLException {
-        String stringBooleanValue = (String) type.get(rs, names[0], session);
+
+        String stringBooleanValue = (String) StandardBasicTypes.STRING.nullSafeGet(rs, names[0], session, owner);
 
         if (stringBooleanValue == null) {
-            log.trace("Found [{}] as column [{}] original value [{}]", null, names[0], stringBooleanValue);
             return null;
         }
 
         if (stringEqualsWithCaseCheck(trueValue, stringBooleanValue)) {
-            log.trace("Found [{}] as column [{}] original value [{}]", true, names[0], stringBooleanValue);
+            EXTRACTOR_LOGGER.tracev("Found [{0}] as column [{1}] original value [{2}]", true, names[0], stringBooleanValue);
             return true;
         }
 
         if (stringEqualsWithCaseCheck(falseValue, stringBooleanValue)) {
-            log.trace("Found [{}] as column [{}] original value [{}]", false, names[0], stringBooleanValue);
+            EXTRACTOR_LOGGER.tracev("Found [{0}] as column [{1}] original value [{2}]", false, names[0], stringBooleanValue);
             return false;
         }
 
-        log.trace("Found [{}] as column [{}] original value [{}]", unknownResult, names[0], stringBooleanValue);
+        EXTRACTOR_LOGGER.tracev("Found [{0}] as column [{1}] original value [{2}]", unknownResult, names[0], stringBooleanValue);
         return unknownResult;
     }
 
     private boolean stringEqualsWithCaseCheck(String value1, String value2) {
         if (ignoreCase) {
-//            return StringUtils.equalsIgnoreCase(value1, value2);
+            return StringUtils.equalsIgnoreCase(value1, value2);
         }
-//        return StringUtils.equals(value1, value2);
-        return false;
+        return StringUtils.equals(value1, value2);
     }
 
     /**
@@ -170,15 +158,13 @@ public class StringBooleanUserType implements UserType, ParameterizedType {
      */
     @Override
     public void nullSafeSet(PreparedStatement st, Object value, int index, SessionImplementor session) throws SQLException {
-        String columnValue = null;
-
-        if (Boolean.TRUE.equals(value)) {
-            columnValue = trueValue;
-        } else if (Boolean.FALSE.equals(value)) {
-            columnValue = falseValue;
+        if (value == null) {
+            StandardBasicTypes.STRING.nullSafeSet(st, null, index, session);
+            return;
         }
-        log.trace("binding parameter [{}] as [{}] - [{}] original value [{}]", index, JdbcTypeNameMapper.getTypeName(sqlTypes[0]), columnValue, value);
 
-        st.setObject(index, columnValue);
+        String columnValue = Boolean.TRUE.equals(value) ? trueValue : falseValue;
+
+        StandardBasicTypes.STRING.nullSafeSet(st, columnValue, index, session);
     }
 }
