@@ -190,7 +190,7 @@ public class GenericEnumUserType implements UserType, ParameterizedType {
     public void nullSafeSet(PreparedStatement st, Object value, int index, SessionImplementor session) throws HibernateException, SQLException {
         try {
             if (value == null) {
-                st.setNull(index, type.sqlType());
+                type.nullSafeSet(st, null, index, session);
                 return;
             }
 

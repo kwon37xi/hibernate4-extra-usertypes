@@ -26,30 +26,40 @@ public class StringBooleanUserType implements UserType, ParameterizedType {
 
     public static final int SQL_TYPE = Types.VARCHAR;
 
+    /** true 값으로 Column에 저장되는 문자열을 지정하는 파라미터 */
     public static final String PARAM_TRUE_VALUE = "trueValue";
     public static final String DEFAULT_TRUE_VALUE = "Y";
+
+    /** false 값으로 Column에 저장되는 문자열을 지정하는 파라미터 */
     public static final String PARAM_FALSE_VALUE = "falseValue";
     public static final String DEFAULT_FALSE_VALUE = "N";
 
+    /** 알 수 없는 값이 나왔을 때 리턴할 값을 지정하는 파라미터 */
+    public static final String PARAM_UNKNOWN_RESULT = "unknownResult";
+    public static final String DEFAULT_UNKNOWN_RESULT = "null";
+
+    /** 대소문자를 무시할지 여부를 지정하는 파라미터 */
+    public static final String PARAM_IGNORE_CASE = "ignoreCase";
+    public static final String DEFAULT_IGNORE_CASE = "false";
+
+    /** true 값을 나타내는 문자열 */
+    private String trueValue = null;
+
+    /** false 값을 나타내는 문자열 */
+    private String falseValue = null;
+
     /**
-     * DB상의 데이터가 알 수 없는 값일때(빈 문자열 포함) unknownResult는
+     * DB상의 데이터가 알 수 없는 값일 때(빈 문자열 포함) unknownResult는
      * "true", "false", "null"을 문자열로 기입한다.
      * "null"이 기본값이며 이때는 알 수 없는 값이 들어오면 null을 리턴하고,
      * "true", "false"로 할 경우 해당 Boolean으로 변환한다.
      */
-    public static final String PARAM_UNKNOWN_RESULT = "unknownResult";
-    public static final String DEFAULT_UNKNOWN_RESULT = "null";
+    private Boolean unknownResult = null;
 
     /**
-     * 대소문자 무시할 지 여부를 true/false로 지정한다.
+     * 대소문자 무시할 지 여부를 {@code true}/{@code false}로 지정한다.
      * 기본값은 true로 대소문자를 다른 값으로써 비교한다.
      */
-    public static final String PARAM_IGNORE_CASE = "ignoreCase";
-    public static final String DEFAULT_IGNORE_CASE = "false";
-
-    private String trueValue = null;
-    private String falseValue = null;
-    private Boolean unknownResult = null;
     private boolean ignoreCase = true;
 
     @Override
@@ -164,7 +174,6 @@ public class StringBooleanUserType implements UserType, ParameterizedType {
         }
 
         String columnValue = Boolean.TRUE.equals(value) ? trueValue : falseValue;
-
         StandardBasicTypes.STRING.nullSafeSet(st, columnValue, index, session);
     }
 }

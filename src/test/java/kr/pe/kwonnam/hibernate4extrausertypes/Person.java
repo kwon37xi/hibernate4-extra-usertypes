@@ -14,14 +14,12 @@ public class Person {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     @Column(name = "firstname", length = 50, nullable = false)
     private String firstName;
 
 
     @Column(name = "lastname", length = 50, nullable = false)
     private String lastName;
-
 
     @Column(name = "sex_by_int", nullable = true)
     @Type(
